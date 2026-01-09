@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useRef, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Pencil, Download, Trash2 } from "lucide-react";
+import { X, Pencil, Download, Trash2, ChevronDown, Check, Plus } from "lucide-react";
 import {
   userGroups,
   accessLevels,
@@ -40,35 +35,154 @@ interface Report {
 }
 
 const savedReports: Report[] = [
-  { id: "1", name: "Demo User Report", isActive: true },
+  { id: "1", name: "Demo User Report" },
   { id: "2", name: "Expired Mobile Users Report" },
   { id: "3", name: "Expired Users" },
 ];
 
+// Multi-select dropdown component
+interface MultiSelectProps {
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  placeholder?: string;
+  maxDisplayItems?: number;
+}
+
+function MultiSelect({
+  options,
+  selected,
+  onChange,
+  placeholder = "Select...",
+  maxDisplayItems = 2,
+}: MultiSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter out "All" from options
+  const filteredOptions = options.filter((opt) => opt !== "All");
+
+  const toggleOption = (option: string) => {
+    if (selected.includes(option)) {
+      onChange(selected.filter((s) => s !== option));
+    } else {
+      onChange([...selected, option]);
+    }
+  };
+
+  const removeOption = (option: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange(selected.filter((s) => s !== option));
+  };
+
+  const removeAllOptions = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange([]);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const displayItems = selected.slice(0, maxDisplayItems);
+  const remainingCount = selected.length - maxDisplayItems;
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <div
+        className="flex min-h-[40px] cursor-pointer flex-wrap items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 transition-colors hover:border-gray-300"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {selected.length === 0 ? (
+          <span className="text-sm text-gray-400">{placeholder}</span>
+        ) : (
+          <>
+            {displayItems.map((item) => (
+              <Badge
+                key={item}
+                variant="secondary"
+                className="flex items-center gap-1 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
+              >
+                {item}
+                <button
+                  onClick={(e) => removeOption(item, e)}
+                  className="ml-0.5 rounded-full hover:bg-white/20"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {remainingCount > 0 && (
+              <Badge variant="secondary" className="bg-gray-200 text-gray-700 hover:bg-gray-300">
+                +{remainingCount}
+              </Badge>
+            )}
+            <button
+              onClick={(e) => removeAllOptions(e)}
+              className="h-4 w-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        )}
+
+        <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-gray-400" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+          <ScrollArea className="max-h-[200px]">
+            <div className="p-1">
+              {filteredOptions.map((option) => {
+                const isSelected = selected.includes(option);
+                return (
+                  <div
+                    key={option}
+                    className={`flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors ${
+                      isSelected ? "bg-blue-50 text-blue-700" : "hover:bg-gray-100"
+                    }`}
+                    onClick={() => toggleOption(option)}
+                  >
+                    <div
+                      className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        isSelected ? "border-[#3B82F6] bg-[#3B82F6]" : "border-gray-300"
+                      }`}
+                    >
+                      {isSelected && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <span>{option}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ReportModal({ isOpen, onClose }: ReportModalProps) {
-  const [reportName, setReportName] = useState("Demo User Report");
+  const [reportName, setReportName] = useState("");
   const [userType, setUserType] = useState("All");
-  const [userGroup, setUserGroup] = useState("All");
-  const [credentialType, setCredentialType] = useState<string[]>(["Link Pass"]);
-  const [accessLevel, setAccessLevel] = useState("All");
-  const [userStatus, setUserStatus] = useState<string[]>(["Activated"]);
-  const [floorLevel, setFloorLevel] = useState("All");
-
-  const removeCredentialType = (type: string) => {
-    setCredentialType((prev) => prev.filter((t) => t !== type));
-  };
-
-  const removeUserStatus = (status: string) => {
-    setUserStatus((prev) => prev.filter((s) => s !== status));
-  };
+  const [userGroup, setUserGroup] = useState<string[]>([]);
+  const [credentialType, setCredentialType] = useState<string[]>([]);
+  const [accessLevel, setAccessLevel] = useState<string[]>([]);
+  const [userStatus, setUserStatus] = useState<string[]>([]);
+  const [floorLevel, setFloorLevel] = useState<string[]>([]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[600px] p-0">
+      <DialogContent className="max-w-[800px] p-0">
         <DialogHeader className="border-b border-gray-200 px-6 py-4">
-          <DialogTitle className="text-lg font-semibold text-gray-900">
-            Report Settings
-          </DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-gray-900">Report Settings</DialogTitle>
         </DialogHeader>
 
         <div className="px-6 py-4">
@@ -80,17 +194,16 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
             <Input
               value={reportName}
               onChange={(e) => setReportName(e.target.value)}
+              placeholder="Enter report name"
               className="border-gray-200"
             />
           </div>
 
           {/* Filter Grid */}
-          <div className="mb-5 grid grid-cols-2 gap-4">
+          <div className="mb-5 grid grid-cols-2 gap-x-6 gap-y-4">
             {/* User Type */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                User Type
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">User Type</label>
               <Select value={userType} onValueChange={setUserType}>
                 <SelectTrigger className="border-gray-200">
                   <SelectValue placeholder="Select user type" />
@@ -105,179 +218,87 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
               </Select>
             </div>
 
-            {/* User Group */}
+            {/* User Group - Multi-select */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                User Group
-              </label>
-              <Select value={userGroup} onValueChange={setUserGroup}>
-                <SelectTrigger className="border-gray-200">
-                  <SelectValue placeholder="Select user group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {userGroups.map((group) => (
-                    <SelectItem key={group} value={group}>
-                      {group}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">User Group</label>
+              <MultiSelect
+                options={userGroups}
+                selected={userGroup}
+                onChange={setUserGroup}
+                placeholder="All"
+                maxDisplayItems={2}
+              />
             </div>
 
-            {/* Credential Type */}
+            {/* Credential Type - Multi-select */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
                 Credential Type
               </label>
-              <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2">
-                {credentialType.map((type) => (
-                  <Badge
-                    key={type}
-                    variant="secondary"
-                    className="flex items-center gap-1 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
-                  >
-                    {type}
-                    <button
-                      onClick={() => removeCredentialType(type)}
-                      className="ml-1 rounded-full hover:bg-white/20"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Select
-                  onValueChange={(value) => {
-                    if (!credentialType.includes(value) && value !== "All") {
-                      setCredentialType((prev) => [...prev, value]);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-6 w-6 border-0 p-0 shadow-none focus:ring-0">
-                    <span className="sr-only">Add credential type</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {credentialTypes.filter((t) => t !== "All").map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <MultiSelect
+                options={credentialTypes}
+                selected={credentialType}
+                onChange={setCredentialType}
+                placeholder="All"
+                maxDisplayItems={2}
+              />
             </div>
 
-            {/* Access Level */}
+            {/* Access Level - Multi-select */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Access Level
-              </label>
-              <Select value={accessLevel} onValueChange={setAccessLevel}>
-                <SelectTrigger className="border-gray-200">
-                  <SelectValue placeholder="Select access level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accessLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Access Level</label>
+              <MultiSelect
+                options={accessLevels}
+                selected={accessLevel}
+                onChange={setAccessLevel}
+                placeholder="All"
+                maxDisplayItems={2}
+              />
             </div>
 
-            {/* User Status */}
+            {/* User Status - Multi-select */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                User Status
-              </label>
-              <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2">
-                {userStatus.map((status) => (
-                  <Badge
-                    key={status}
-                    variant="secondary"
-                    className="flex items-center gap-1 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
-                  >
-                    {status}
-                    <button
-                      onClick={() => removeUserStatus(status)}
-                      className="ml-1 rounded-full hover:bg-white/20"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-                <Select
-                  onValueChange={(value) => {
-                    if (!userStatus.includes(value) && value !== "All") {
-                      setUserStatus((prev) => [...prev, value]);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-6 w-6 border-0 p-0 shadow-none focus:ring-0">
-                    <span className="sr-only">Add user status</span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userStatuses.filter((s) => s !== "All").map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">User Status</label>
+              <MultiSelect
+                options={userStatuses}
+                selected={userStatus}
+                onChange={setUserStatus}
+                placeholder="All"
+                maxDisplayItems={2}
+              />
             </div>
 
-            {/* Floor Level */}
+            {/* Floor Level - Multi-select */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Floor level
-              </label>
-              <Select value={floorLevel} onValueChange={setFloorLevel}>
-                <SelectTrigger className="border-gray-200">
-                  <SelectValue placeholder="Select floor level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {floorLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Floor level</label>
+              <MultiSelect
+                options={floorLevels}
+                selected={floorLevel}
+                onChange={setFloorLevel}
+                placeholder="All"
+                maxDisplayItems={3}
+              />
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="mb-5 flex gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="border-gray-200 text-gray-600"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              className="border-gray-200 text-gray-700"
-            >
-              Edit Report
+            <Button variant="outline" className="border-gray-200 text-gray-600">
+              <Plus className="h-4 w-4" />
+              Add Report
             </Button>
           </div>
 
           {/* Report List */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Report List
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Report List</label>
             <ScrollArea className="h-[180px] rounded-md border border-gray-200">
               <div className="divide-y divide-gray-100">
                 {savedReports.map((report) => (
                   <div
                     key={report.id}
                     className={`flex items-center justify-between px-4 py-3 transition-colors ${
-                      report.isActive
-                        ? "bg-[#3B82F6] text-white"
-                        : "hover:bg-gray-50"
+                      report.isActive ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
                     }`}
                   >
                     <span className="text-sm font-medium">{report.name}</span>

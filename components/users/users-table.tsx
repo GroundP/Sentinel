@@ -2,7 +2,13 @@
 
 import { useMemo, useCallback, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { AllCommunityModule, ModuleRegistry, ColDef, ICellRendererParams, themeQuartz } from "ag-grid-community";
+import {
+  AllCommunityModule,
+  ModuleRegistry,
+  ColDef,
+  ICellRendererParams,
+  themeQuartz,
+} from "ag-grid-community";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User } from "@/data/mock-users";
@@ -18,13 +24,16 @@ interface UsersTableProps {
 const NameCellRenderer = (params: ICellRendererParams<User>) => {
   const user = params.data;
   if (!user?.name) return null;
-  
+
   return (
     <div className="flex items-center gap-3">
       <Avatar className="h-8 w-8">
         <AvatarImage src={user.avatar} alt={user.name} />
         <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
-          {user.name.split(" ").map(n => n[0]).join("")}
+          {user.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")}
         </AvatarFallback>
       </Avatar>
       <span className="font-medium text-gray-900">{user.name}</span>
@@ -36,13 +45,17 @@ const NameCellRenderer = (params: ICellRendererParams<User>) => {
 const StatusCellRenderer = (params: ICellRendererParams<User>) => {
   const status = params.value;
   if (!status) return null;
-  
+
   const isActive = status === "Active";
-  
+
   return (
-    <Badge 
+    <Badge
       variant={isActive ? "default" : "secondary"}
-      className={isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-gray-100 text-gray-600 hover:bg-gray-100"}
+      className={
+        isActive
+          ? "bg-green-100 text-green-700 hover:bg-green-100"
+          : "bg-gray-100 text-gray-600 hover:bg-gray-100"
+      }
     >
       {status}
     </Badge>
@@ -79,82 +92,80 @@ const sentinelTheme = themeQuartz.withParams({
 export function UsersTable({ users }: UsersTableProps) {
   const [rowData] = useState<User[]>(users);
 
-  const columnDefs = useMemo<ColDef<User>[]>(() => [
-    {
-      headerCheckboxSelection: true,
-      checkboxSelection: true,
-      width: 50,
-      pinned: "left",
-      headerClass: "ag-header-checkbox",
-    },
-    {
-      field: "userType",
-      headerName: "User Type",
-      width: 120,
-      headerComponent: CustomHeader,
-      headerComponentParams: { displayName: "User Type" },
-    },
-    {
-      field: "name",
-      headerName: "Name",
-      width: 200,
-      cellRenderer: NameCellRenderer,
-    },
-    {
-      field: "visibleId",
-      headerName: "ID",
-      width: 120,
-    },
-    {
-      field: "credentialType",
-      headerName: "Credential Type",
-      width: 180,
-      headerComponent: CustomHeader,
-      headerComponentParams: { displayName: "Credential Type" },
-    },
-    {
-      headerName: "Valid Period",
-      width: 180,
-      valueGetter: (params) => {
-        const start = params.data?.validPeriodStart;
-        const end = params.data?.validPeriodEnd;
-        if (!start) return "";
-        return end ? `${start} - ${end}` : start;
+  const columnDefs = useMemo<ColDef<User>[]>(
+    () => [
+      {
+        headerCheckboxSelection: true,
+        checkboxSelection: true,
+        width: 50,
+        pinned: "left",
+        headerClass: "ag-header-checkbox",
+        filter: false,
       },
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      cellRenderer: StatusCellRenderer,
-    },
-    {
-      field: "userGroup",
-      headerName: "User Group",
-      width: 180,
-      headerComponent: CustomHeader,
-      headerComponentParams: { displayName: "User Group" },
-    },
-    {
-      field: "accessLevel",
-      headerName: "Access Level",
-      width: 150,
-      headerComponent: CustomHeader,
-      headerComponentParams: { displayName: "Access Level" },
-    },
-    {
-      field: "floorLevel",
-      headerName: "Floor level",
-      width: 150,
-      headerComponent: CustomHeader,
-      headerComponentParams: { displayName: "Floor level" },
-    },
-  ], []);
+      {
+        field: "userType",
+        headerName: "User Type",
+        width: 120,
+      },
+      {
+        field: "name",
+        headerName: "Name",
+        width: 200,
+        cellRenderer: NameCellRenderer,
+      },
+      {
+        field: "visibleId",
+        headerName: "ID",
+        width: 120,
+      },
+      {
+        field: "credentialType",
+        headerName: "Credential Type",
+        width: 180,
+      },
+      {
+        headerName: "Valid Period",
+        width: 180,
+        valueGetter: (params) => {
+          const start = params.data?.validPeriodStart;
+          const end = params.data?.validPeriodEnd;
+          if (!start) return "";
+          return end ? `${start} - ${end}` : start;
+        },
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 120,
+        cellRenderer: StatusCellRenderer,
+      },
+      {
+        field: "userGroup",
+        headerName: "User Group",
+        width: 180,
+      },
+      {
+        field: "accessLevel",
+        headerName: "Access Level",
+        width: 150,
+      },
+      {
+        field: "floorLevel",
+        headerName: "Floor level",
+        width: 150,
+      },
+    ],
+    []
+  );
 
-  const defaultColDef = useMemo<ColDef>(() => ({
-    sortable: true,
-    resizable: true,
-  }), []);
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      sortable: true,
+      resizable: true,
+      filter: true,
+    }),
+    []
+  );
 
   const onGridReady = useCallback(() => {
     // Grid ready callback

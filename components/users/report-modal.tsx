@@ -32,9 +32,15 @@ interface Report {
   id: string;
   name: string;
   isActive?: boolean;
+  userType?: string;
+  userGroup?: string[];
+  credentialType?: string[];
+  accessLevel?: string[];
+  userStatus?: string[];
+  floorLevel?: string[];
 }
 
-const savedReports: Report[] = [
+const initialSavedReports: Report[] = [
   { id: "1", name: "Demo User Report" },
   { id: "2", name: "Expired Mobile Users Report" },
   { id: "3", name: "Expired Users" },
@@ -177,6 +183,81 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
   const [accessLevel, setAccessLevel] = useState<string[]>([]);
   const [userStatus, setUserStatus] = useState<string[]>([]);
   const [floorLevel, setFloorLevel] = useState<string[]>([]);
+  const [savedReports, setSavedReports] = useState<Report[]>(initialSavedReports);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const reportActionStr = isEditModalOpen ? "Edit" : "Add";
+
+  const handleAddReport = () => {
+    if (reportName.trim() === "") {
+      alert("Please enter a report name");
+      return;
+    }
+    setSavedReports([
+      ...savedReports,
+      {
+        id: (savedReports.length + 1).toString(),
+        name: reportName,
+        isActive: false,
+        userType: userType,
+        userGroup: userGroup,
+        credentialType: credentialType,
+        accessLevel: accessLevel,
+        userStatus: userStatus,
+        floorLevel: floorLevel,
+      },
+    ]);
+    setReportName("");
+    setUserType("All");
+    setUserGroup([]);
+    setCredentialType([]);
+    setAccessLevel([]);
+    setUserStatus([]);
+    setFloorLevel([]);
+  };
+
+  const handleDeleteReport = (id: string) => {
+    if (confirm("Are you sure you want to delete this report?")) {
+      setSavedReports(savedReports.filter((report) => report.id !== id));
+    }
+  };
+
+  const handleEditReport = (id: string) => {
+    setIsEditModalOpen(true);
+    const reportToEdit = savedReports.find((report) => report.id === id);
+    if (reportToEdit) {
+      setReportName(reportToEdit.name);
+      setUserType(reportToEdit.userType || "All");
+      setUserGroup(reportToEdit.userGroup || []);
+      setCredentialType(reportToEdit.credentialType || []);
+      setAccessLevel(reportToEdit.accessLevel || []);
+      setUserStatus(reportToEdit.userStatus || []);
+      setFloorLevel(reportToEdit.floorLevel || []);
+      // 이미 선택된 Report의 배경색을 파란색(#3B82F6)으로 변경하려면,
+      // 각 report의 isActive를 true/false로 관리하고, 선택시 활성화가 필요합니다.
+      // isActive를 현재 선택(편집)중인 보고서와 매칭하여 상태 리셋 및 관리가 되도록 구현합니다.
+      // 아래는 편집 모드 진입 시, 해당 Report만 isActive: true 설정
+      setSavedReports((prevReports) =>
+        prevReports.map((report) =>
+          report.id === id ? { ...report, isActive: true } : { ...report, isActive: false }
+        )
+      );
+    }
+  };
+
+  const handleCancelEditReport = (id: string) => {
+    setIsEditModalOpen(false);
+    setSavedReports((prevReports) =>
+      prevReports.map((report) => (report.id === id ? { ...report, isActive: false } : report))
+    );
+    setReportName("");
+    setUserType("All");
+    setUserGroup([]);
+    setCredentialType([]);
+    setAccessLevel([]);
+    setUserStatus([]);
+    setFloorLevel([]);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -283,9 +364,13 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
 
           {/* Action Buttons */}
           <div className="mb-5 flex gap-3">
-            <Button variant="outline" className="border-gray-200 text-gray-600">
-              <Plus className="h-4 w-4" />
-              Add Report
+            <Button
+              variant="outline"
+              className="border-gray-200 text-gray-600"
+              onClick={handleAddReport}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {reportActionStr} Report
             </Button>
           </div>
 
@@ -309,8 +394,17 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                             ? "hover:bg-white/20"
                             : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         }`}
+                        onClick={() =>
+                          isEditModalOpen
+                            ? handleCancelEditReport(report.id)
+                            : handleEditReport(report.id)
+                        }
                       >
-                        <Pencil className="h-4 w-4" />
+                        {report.isActive ? (
+                          <X className="h-4 w-4" />
+                        ) : (
+                          <Pencil className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         className={`rounded p-1 transition-colors ${
@@ -327,6 +421,7 @@ export function ReportModal({ isOpen, onClose }: ReportModalProps) {
                             ? "hover:bg-white/20"
                             : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                         }`}
+                        onClick={() => handleDeleteReport(report.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

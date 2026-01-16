@@ -1,15 +1,15 @@
 "use client";
 
-import { Search, ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
+import { ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GlobalSearch } from "./global-search";
 
 interface HeaderProps {
   userName?: string;
@@ -52,15 +52,8 @@ export function Header({ userName = "Jisang" }: HeaderProps) {
           <HelpCircle className="h-5 w-5" />
         </Button>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Search"
-            className="w-64 border-gray-200 bg-gray-50 pl-10 focus:bg-white"
-          />
-        </div>
+        {/* Global Search */}
+        <GlobalSearch />
 
         {/* Profile */}
         <DropdownMenu>
